@@ -53,5 +53,5 @@ func sendArpPackage(ip IP) {
 		log.Fatal("发送arp数据包失败..")
 	}
 
-	log.Info("Send to: ", dstIP)
+	log.Info("ARP Send to: ", dstIP)
 }
