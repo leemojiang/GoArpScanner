@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/google/gopacket/pcap"
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ var localHaddr net.HardwareAddr
 var ifaceName string
 var pcapName string
 var ifaceIdx int
+var t *time.Ticker
 
 func init() {
 	log.SetLevel(logrus.InfoLevel)
@@ -42,13 +45,32 @@ func init() {
 
 func main() {
 	setupNetInfo(ifaceIdx)
+	// showPCAPInfo()
+	// return
 	setupPCAPInfo()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go listenARP(ctx)
+	time.Sleep(1 * time.Second)
+
 	// Send ARPs on Ip addr list
+	// sendArpPackage(Table(ipNet)[253])
 	for _, ipAddr := range Table(ipNet) {
-		fmt.Println(ipAddr)
 		sendArpPackage(ipAddr)
-		break
+	}
+
+	// 启动计时器 在发送ARP包之后重置计时器
+	t = time.NewTicker(5 * time.Second)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			cancel()
+			time.Sleep(1 * time.Second)
+			log.Info("计时结束 程序结束")
+			return
+		}
 	}
 
 }
@@ -127,9 +149,13 @@ func setupPCAPInfo() {
 		log.Fatal(err)
 	}
 	for _, device := range devices {
-		if device.Description == "WAN Miniport (IP)" {
+		switch device.Description {
+		case "Realtek PCIe GbE Family Controller":
 			pcapName = device.Name
-			break
+			log.Info("Device Setup: ", pcapName)
+			// case "WAN Miniport (Network Monitor)":
+			// pcapListenName = device.Name
+			// pcapName = device.Name
 		}
 	}
 

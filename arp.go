@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net"
 	"time"
 
@@ -21,7 +22,7 @@ func sendArpPackage(ip IP) {
 	// EthernetType 0x0806  ARP
 	ether := &layers.Ethernet{
 		SrcMAC:       localHaddr,
-		DstMAC:       net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		DstMAC:       net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		EthernetType: layers.EthernetTypeARP,
 	}
 
@@ -33,7 +34,7 @@ func sendArpPackage(ip IP) {
 		Operation:         uint16(1), // 0x0001 arp request 0x0002 arp response
 		SourceHwAddress:   localHaddr,
 		SourceProtAddress: srcIP,
-		DstHwAddress:      net.HardwareAddr{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		DstHwAddress:      net.HardwareAddr{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		DstProtAddress:    dstIP,
 	}
 
@@ -54,4 +55,41 @@ func sendArpPackage(ip IP) {
 	}
 
 	log.Info("ARP Send to: ", dstIP)
+	t = time.NewTicker(3 * time.Second)
+}
+
+func listenARP(ctx context.Context) {
+	handle, err := pcap.OpenLive(pcapName, 1024, false, 20*time.Second)
+	if err != nil {
+		log.Fatal("ARP接受 Pcap打开失败: ", err)
+	}
+	defer handle.Close()
+
+	// 设置BPF过滤器，并检查是否有错误
+	// if err := handle.SetBPFFilter("arp"); err != nil {
+	// 	log.Fatal("设置BPF过滤器失败: ", err)
+	// }
+	// handle.SetBPFFilter("arp or rarp")
+
+	ps := gopacket.NewPacketSource(handle, handle.LinkType())
+
+	log.Info("启动ARP监听")
+	for {
+		select {
+		//外部调用 终止监听
+		case <-ctx.Done():
+			log.Info("ARP listen 结束")
+			return
+		case p := <-ps.Packets():
+			if arpLayer := p.Layer(layers.LayerTypeARP); arpLayer != nil {
+				arp, _ := arpLayer.(*layers.ARP)
+				if arp.Operation == 2 {
+					mac := net.HardwareAddr(arp.SourceHwAddress)
+					ip := ParseIP(arp.SourceProtAddress)
+					log.Info("IP: %s MAC: %s", ip, mac)
+				}
+			}
+			// arp := p.Layer(layers.LayerTypeARP).(*layers.ARP)
+		}
+	}
 }

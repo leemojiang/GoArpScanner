@@ -13,6 +13,11 @@ func (ip IP) String() string {
 	return fmt.Sprintf("%d.%d.%d.%d", byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
 }
 
+// []byte --> IP
+func ParseIP(b []byte) IP {
+	return IP(IP(b[0])<<24 + IP(b[1])<<16 + IP(b[2])<<8 + IP(b[3]))
+}
+
 // /////////////////////////////////////////////////////////////////////////////////
 // 根据IP和mask换算内网IP范围
 func Table(ipNet *net.IPNet) []IP {
