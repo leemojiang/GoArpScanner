@@ -8,6 +8,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	manuf "github.com/timest/gomanuf"
 )
 
 func sendArpPackage(ip IP) {
@@ -86,7 +87,8 @@ func listenARP(ctx context.Context) {
 				if arp.Operation == 2 {
 					mac := net.HardwareAddr(arp.SourceHwAddress)
 					ip := ParseIP(arp.SourceProtAddress)
-					log.Info("IP: %s MAC: %s", ip, mac)
+					m := manuf.Search(mac.String())
+					log.Info("IP: MAC:", ip, mac, m)
 				}
 			}
 			// arp := p.Layer(layers.LayerTypeARP).(*layers.ARP)
