@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
 
+	"github.com/google/gopacket/pcap"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,6 +19,7 @@ var localHaddr net.HardwareAddr
 
 // Net interface Name
 var ifaceName string
+var pcapName string
 var ifaceIdx int
 
 func init() {
@@ -30,12 +33,24 @@ func init() {
 
 	flag.Parse()
 	log.Info("Program Start")
+
+	// allow non root user to execute by compare with euid
+	// if os.Geteuid() != 0 {
+	// 	log.Fatal("goscan must run as root.")
+	// }
 }
 
 func main() {
 	setupNetInfo(ifaceIdx)
-	//
-	Table(ipNet)
+	setupPCAPInfo()
+
+	// Send ARPs on Ip addr list
+	for _, ipAddr := range Table(ipNet) {
+		fmt.Println(ipAddr)
+		sendArpPackage(ipAddr)
+		break
+	}
+
 }
 
 func setupNetInfo(idx int) {
@@ -94,4 +109,38 @@ func showNetInfo() {
 		log.Info("Interface MAC:", iface.HardwareAddr.String())
 		log.Info("Interface Index:", iface.Index)
 	}
+}
+
+func showPCAPInfo() {
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, device := range devices {
+		fmt.Printf("Name: %s, Description: %s ,Address: %s\n", device.Name, device.Description, device.Addresses)
+	}
+}
+
+func setupPCAPInfo() {
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, device := range devices {
+		if device.Description == "WAN Miniport (IP)" {
+			pcapName = device.Name
+			break
+		}
+	}
+
+	if pcapName == "" {
+		log.Fatal("未找到合适的设备")
+	}
+
+	// 使用设备名称打开网卡
+	handle, err := pcap.OpenLive(pcapName, 2048, true, pcap.BlockForever)
+	if err != nil {
+		log.Fatal("pcap打开失败:", err)
+	}
+	defer handle.Close()
 }
