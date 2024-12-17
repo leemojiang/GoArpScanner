@@ -26,6 +26,9 @@ var ifaceIdx int
 var t *time.Ticker
 
 func init() {
+	// 初始化 data
+	data = make(map[IP]DisplayInfo)
+
 	log.SetLevel(logrus.InfoLevel)
 	formatter := &logrus.TextFormatter{
 		ForceColors: true,
@@ -66,13 +69,13 @@ func main() {
 	for {
 		select {
 		case <-t.C:
+			//关闭所有监听go routine
 			cancel()
-			time.Sleep(1 * time.Second)
 			log.Info("计时结束 程序结束")
+			PrintData()
 			return
 		}
 	}
-
 }
 
 func setupNetInfo(idx int) {

@@ -18,6 +18,18 @@ func ParseIP(b []byte) IP {
 	return IP(IP(b[0])<<24 + IP(b[1])<<16 + IP(b[2])<<8 + IP(b[3]))
 }
 
+// //////////////////////////////////////////////////////////////////////////////////
+// IPSlice ，实现了sort的排序接口
+type IPSlice []IP
+
+func (ip IPSlice) Len() int { return len(ip) }
+func (ip IPSlice) Swap(i, j int) {
+	ip[i], ip[j] = ip[j], ip[i]
+}
+func (ip IPSlice) Less(i, j int) bool {
+	return ip[i] < ip[j]
+}
+
 // /////////////////////////////////////////////////////////////////////////////////
 // 根据IP和mask换算内网IP范围
 func Table(ipNet *net.IPNet) []IP {

@@ -88,7 +88,8 @@ func listenARP(ctx context.Context) {
 					mac := net.HardwareAddr(arp.SourceHwAddress)
 					ip := ParseIP(arp.SourceProtAddress)
 					m := manuf.Search(mac.String())
-					log.Info("IP: MAC:", ip, mac, m)
+					// log.Info("IP: MAC:", ip, mac, m)
+					pushData(ip, mac, "", m)
 				}
 			}
 			// arp := p.Layer(layers.LayerTypeARP).(*layers.ARP)
