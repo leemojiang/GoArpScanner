@@ -19,6 +19,7 @@ func listenNBNS(ctx context.Context) {
 		log.Fatal("pcap打开失败:", err)
 	}
 	defer handle.Close()
+	log.Info("启动NBNS监听")
 	handle.SetBPFFilter("udp and port 137 and dst host " + ipNet.IP.String())
 	ps := gopacket.NewPacketSource(handle, handle.LinkType())
 	for {

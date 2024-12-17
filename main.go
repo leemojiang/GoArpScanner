@@ -54,6 +54,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go listenARP(ctx)
+	go listenMDNS(ctx)
+	go listenNBNS(ctx)
 	time.Sleep(1 * time.Second)
 
 	// Send ARPs on Ip addr list

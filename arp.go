@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/google/gopacket"
@@ -55,7 +56,7 @@ func sendArpPackage(ip IP) {
 		log.Fatal("发送arp数据包失败..")
 	}
 
-	log.Info("ARP Send to: ", dstIP)
+	log.Debug("ARP Send to: ", dstIP)
 	t = time.NewTicker(3 * time.Second)
 }
 
@@ -90,6 +91,12 @@ func listenARP(ctx context.Context) {
 					m := manuf.Search(mac.String())
 					// log.Info("IP: MAC:", ip, mac, m)
 					pushData(ip, mac, "", m)
+
+					if strings.Contains(m, "Apple") {
+						go sendMdns(ip, mac)
+					} else {
+						go sendNbns(ip, mac)
+					}
 				}
 			}
 			// arp := p.Layer(layers.LayerTypeARP).(*layers.ARP)

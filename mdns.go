@@ -20,30 +20,40 @@ func listenMDNS(ctx context.Context) {
 		log.Fatal("pcap打开失败:", err)
 	}
 	defer handle.Close()
-	handle.SetBPFFilter("udp and port 5353")
+	log.Info("启动MDNS监听")
+	// handle.SetBPFFilter("udp and port 5353")
 	ps := gopacket.NewPacketSource(handle, handle.LinkType())
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case p := <-ps.Packets():
-			if len(p.Layers()) == 4 {
-				c := p.Layers()[3].LayerContents()
-				if c[2] == 0x84 && c[3] == 0x00 && c[6] == 0x00 && c[7] == 0x01 {
-					// 从网络层(ipv4)拿IP, 不考虑IPv6
-					i := p.Layer(layers.LayerTypeIPv4)
-					if i == nil {
-						continue
-					}
-					ipv4 := i.(*layers.IPv4)
-					ip := ipv4.SrcIP
-					// 把 hostname 存入到数据库
-					h := ParseMdns(c)
-					if len(h) > 0 {
-						pushData(ParseIP(ip), nil, h, "")
+			// 检查是否包含UDP层
+			if udpLayer := p.Layer(layers.LayerTypeUDP); udpLayer != nil {
+				udp, _ := udpLayer.(*layers.UDP)
+				srcPort := udp.SrcPort
+				dstPort := udp.DstPort
+				log.Info("UDP数据包 - 源端口: %d, 目标端口: %d\n", srcPort, dstPort)
+
+				if len(p.Layers()) == 4 {
+					c := p.Layers()[3].LayerContents()
+					if c[2] == 0x84 && c[3] == 0x00 && c[6] == 0x00 && c[7] == 0x01 {
+						// 从网络层(ipv4)拿IP, 不考虑IPv6
+						i := p.Layer(layers.LayerTypeIPv4)
+						if i == nil {
+							continue
+						}
+						ipv4 := i.(*layers.IPv4)
+						ip := ipv4.SrcIP
+						// 把 hostname 存入到数据库
+						h := ParseMdns(c)
+						if len(h) > 0 {
+							pushData(ParseIP(ip), nil, h, "")
+						}
 					}
 				}
 			}
+
 		}
 	}
 }
