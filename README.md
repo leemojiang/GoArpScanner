@@ -1,4 +1,5 @@
 # LAN Scanner in Go
+Go网络编程练习
 
 ## Description
 基于[Go Scan](https://github.com/timest/goscan)项目,修改代码以适配在windows上运行.
